@@ -1,0 +1,202 @@
+---
+---
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Galerie d'images</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b24;
+    --text: #e8ecf3;
+    --muted: #9aa4b5;
+    --accent: #5eb8ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 2.2rem 1.5rem 1.2rem;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  header p { color: var(--muted); margin-top: 0.4rem; font-size: 0.95rem; }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem 1.6rem;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(var(--bg) 75%, transparent);
+    z-index: 5;
+  }
+  nav a {
+    color: var(--text);
+    text-decoration: none;
+    background: var(--surface);
+    border: 1px solid #2a3342;
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  nav a .count { color: var(--muted); font-size: 0.8rem; margin-left: 0.3rem; }
+  main { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+  section { margin-bottom: 3rem; }
+  section h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 1rem 0;
+    color: var(--accent);
+  }
+  .grid {
+    columns: 4 260px;
+    column-gap: 14px;
+  }
+  .grid figure {
+    break-inside: avoid;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+    cursor: zoom-in;
+    transition: transform 0.15s;
+  }
+  .grid figure:hover { transform: scale(1.015); }
+  .grid img { width: 100%; display: block; }
+  footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 2rem; }
+
+  /* Lightbox */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 12, 0.96);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: 92vw;
+    max-height: 88vh;
+    border-radius: 6px;
+    box-shadow: 0 10px 60px rgba(0,0,0,0.6);
+  }
+  #lightbox .lb-btn {
+    position: absolute;
+    background: none;
+    border: none;
+    color: #cfd8e6;
+    font-size: 2.4rem;
+    cursor: pointer;
+    padding: 1rem;
+    line-height: 1;
+    user-select: none;
+  }
+  #lightbox .lb-btn:hover { color: #fff; }
+  #lb-close { top: 0.5rem; right: 1rem; }
+  #lb-prev { left: 0.5rem; top: 50%; transform: translateY(-50%); }
+  #lb-next { right: 0.5rem; top: 50%; transform: translateY(-50%); }
+  #lb-counter {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+{% assign files = site.static_files | where_exp: "f", "f.path contains '/images/'" %}
+{% assign groups = files | group_by_exp: "f", "f.path | replace_first: '/images/', '' | split: '/' | first" | sort: "name" %}
+
+<header>
+  <h1>Galerie d'images</h1>
+  <p>Images libres de droit — cliquez sur une image pour l'agrandir</p>
+</header>
+
+<nav>
+  {% for group in groups %}
+  <a href="#cat-{{ forloop.index }}">{{ group.name }}<span class="count">{{ group.items | size }}</span></a>
+  {% endfor %}
+</nav>
+
+<main>
+  {% for group in groups %}
+  <section id="cat-{{ forloop.index }}">
+    <h2>{{ group.name }}</h2>
+    <div class="grid">
+      {% assign sorted = group.items | sort: "path" %}
+      {% for f in sorted %}
+        {% assign ext = f.extname | downcase %}
+        {% if ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == '.webp' or ext == '.gif' or ext == '.avif' %}
+        <figure data-cat="{{ group.name | escape }}">
+          <img src="{{ f.path | remove_first: '/' | uri_escape }}" alt="{{ group.name | escape }}" loading="lazy">
+        </figure>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</main>
+
+<footer>Pour ajouter des images : déposez-les dans un sous-dossier de <code>images/</code> du dépôt GitHub.</footer>
+
+<div id="lightbox">
+  <button class="lb-btn" id="lb-close" title="Fermer (Échap)">&times;</button>
+  <button class="lb-btn" id="lb-prev" title="Précédente (&larr;)">&#8249;</button>
+  <img id="lb-img" src="" alt="">
+  <button class="lb-btn" id="lb-next" title="Suivante (&rarr;)">&#8250;</button>
+  <div id="lb-counter"></div>
+</div>
+
+<script>
+  const figures = Array.from(document.querySelectorAll('.grid figure'));
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lb-img');
+  const lbCounter = document.getElementById('lb-counter');
+  let current = -1;
+
+  function show(i) {
+    if (i < 0) i = figures.length - 1;
+    if (i >= figures.length) i = 0;
+    current = i;
+    const fig = figures[i];
+    lbImg.src = fig.querySelector('img').src;
+    lbCounter.textContent = fig.dataset.cat + ' — ' + (i + 1) + ' / ' + figures.length;
+    lightbox.classList.add('open');
+  }
+  function close() { lightbox.classList.remove('open'); lbImg.src = ''; }
+
+  figures.forEach((fig, i) => fig.addEventListener('click', () => show(i)));
+  document.getElementById('lb-close').addEventListener('click', close);
+  document.getElementById('lb-prev').addEventListener('click', e => { e.stopPropagation(); show(current - 1); });
+  document.getElementById('lb-next').addEventListener('click', e => { e.stopPropagation(); show(current + 1); });
+  lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target === lbImg) close(); });
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(current - 1);
+    if (e.key === 'ArrowRight') show(current + 1);
+  });
+</script>
+
+</body>
+</html>

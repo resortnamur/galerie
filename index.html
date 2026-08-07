@@ -11,6 +11,7 @@
   :root {
     --bg: #0e1116;
     --surface: #161b24;
+    --border: #2a3342;
     --text: #e8ecf3;
     --muted: #9aa4b5;
     --accent: #5eb8ff;
@@ -23,50 +24,91 @@
     min-height: 100vh;
   }
   header {
-    padding: 2.2rem 1.5rem 1.2rem;
+    padding: 2.2rem 1.5rem 1rem;
     text-align: center;
   }
-  header h1 {
-    font-size: 1.7rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
+  header h1 { font-size: 1.7rem; font-weight: 600; letter-spacing: 0.02em; }
+  header h1 a { color: var(--text); text-decoration: none; }
+  header h1 a:hover { color: var(--accent); }
   header p { color: var(--muted); margin-top: 0.4rem; font-size: 0.95rem; }
+
   nav {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.6rem 1.5rem 1.6rem;
+    padding: 0.8rem 1.5rem 1.4rem;
     position: sticky;
     top: 0;
-    background: linear-gradient(var(--bg) 75%, transparent);
+    background: linear-gradient(var(--bg) 78%, transparent);
     z-index: 5;
   }
   nav a {
     color: var(--text);
     text-decoration: none;
     background: var(--surface);
-    border: 1px solid #2a3342;
+    border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 0.4rem 1rem;
+    padding: 0.42rem 1.05rem;
     font-size: 0.9rem;
     transition: border-color 0.15s, color 0.15s;
   }
   nav a:hover { border-color: var(--accent); color: var(--accent); }
+  nav a.active { border-color: var(--accent); color: var(--accent); background: #14202e; }
   nav a .count { color: var(--muted); font-size: 0.8rem; margin-left: 0.3rem; }
+
   main { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem 4rem; }
-  section { margin-bottom: 3rem; }
-  section h2 {
-    font-size: 1.2rem;
+
+  /* Page d'accueil : cartes de dossiers */
+  #home .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding-top: 0.8rem;
+  }
+  #home .card {
+    display: block;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  #home .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+  #home .card .cover {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #0a0d12;
+  }
+  #home .card .cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+  #home .card:hover .cover img { transform: scale(1.05); }
+  #home .card .label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.1rem;
+  }
+  #home .card .label strong { font-size: 1.05rem; font-weight: 600; }
+  #home .card .label span { color: var(--muted); font-size: 0.85rem; }
+
+  /* Vue dossier : grille d'images */
+  section.cat { display: none; }
+  section.cat h2 {
+    font-size: 1.25rem;
     font-weight: 600;
-    padding: 1rem 0;
+    padding: 0.4rem 0 1rem;
     color: var(--accent);
   }
-  .grid {
-    columns: 4 260px;
-    column-gap: 14px;
-  }
+  section.cat h2 span { color: var(--muted); font-size: 0.9rem; font-weight: 400; margin-left: 0.5rem; }
+  .grid { columns: 4 260px; column-gap: 14px; }
   .grid figure {
     break-inside: avoid;
     margin-bottom: 14px;
@@ -78,6 +120,7 @@
   }
   .grid figure:hover { transform: scale(1.015); }
   .grid img { width: 100%; display: block; }
+
   footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 2rem; }
 
   /* Lightbox */
@@ -128,20 +171,44 @@
 {% assign groups = files | group_by_exp: "f", "f.path | replace_first: '/images/', '' | split: '/' | first" | sort: "name" %}
 
 <header>
-  <h1>Galerie d'images</h1>
+  <h1><a href="#" title="Retour à l'accueil">Galerie d'images</a></h1>
   <p>Images libres de droit — cliquez sur une image pour l'agrandir</p>
 </header>
 
 <nav>
+  <a href="#" data-nav="home">Accueil</a>
   {% for group in groups %}
-  <a href="#cat-{{ forloop.index }}">{{ group.name }}<span class="count">{{ group.items | size }}</span></a>
+  <a href="#{{ group.name | slugify }}" data-nav="{{ group.name | slugify }}">{{ group.name }}<span class="count">{{ group.items | size }}</span></a>
   {% endfor %}
 </nav>
 
 <main>
+  <div id="home">
+    <div class="cards">
+      {% for group in groups %}
+      {% assign sorted = group.items | sort: "path" %}
+      {% assign cover = "" %}
+      {% for f in sorted %}
+        {% assign ext = f.extname | downcase %}
+        {% if ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == '.webp' or ext == '.gif' or ext == '.avif' %}
+          {% assign cover = f.path | remove_first: '/' | uri_escape %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+      <a class="card" href="#{{ group.name | slugify }}">
+        <div class="cover"><img src="{{ cover }}" alt="{{ group.name | escape }}" loading="lazy"></div>
+        <div class="label">
+          <strong>{{ group.name }}</strong>
+          <span>{{ group.items | size }} image{% if group.items.size > 1 %}s{% endif %}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
   {% for group in groups %}
-  <section id="cat-{{ forloop.index }}">
-    <h2>{{ group.name }}</h2>
+  <section class="cat" data-slug="{{ group.name | slugify }}">
+    <h2>{{ group.name }}<span>{{ group.items | size }} image{% if group.items.size > 1 %}s{% endif %}</span></h2>
     <div class="grid">
       {% assign sorted = group.items | sort: "path" %}
       {% for f in sorted %}
@@ -168,13 +235,29 @@
 </div>
 
 <script>
-  const figures = Array.from(document.querySelectorAll('.grid figure'));
+  const home = document.getElementById('home');
+  const sections = Array.from(document.querySelectorAll('section.cat'));
+  const navLinks = Array.from(document.querySelectorAll('nav a'));
   const lightbox = document.getElementById('lightbox');
   const lbImg = document.getElementById('lb-img');
   const lbCounter = document.getElementById('lb-counter');
+  let figures = [];
   let current = -1;
 
+  function route() {
+    const slug = decodeURIComponent(location.hash.replace('#', ''));
+    const target = sections.find(s => s.dataset.slug === slug);
+    home.style.display = target ? 'none' : 'block';
+    sections.forEach(s => s.style.display = (s === target) ? 'block' : 'none');
+    navLinks.forEach(a => a.classList.toggle('active', a.dataset.nav === (target ? slug : 'home')));
+    figures = target ? Array.from(target.querySelectorAll('figure')) : [];
+    figures.forEach((fig, i) => fig.onclick = () => show(i));
+    closeLb();
+    window.scrollTo(0, 0);
+  }
+
   function show(i) {
+    if (!figures.length) return;
     if (i < 0) i = figures.length - 1;
     if (i >= figures.length) i = 0;
     current = i;
@@ -183,19 +266,21 @@
     lbCounter.textContent = fig.dataset.cat + ' — ' + (i + 1) + ' / ' + figures.length;
     lightbox.classList.add('open');
   }
-  function close() { lightbox.classList.remove('open'); lbImg.src = ''; }
+  function closeLb() { lightbox.classList.remove('open'); lbImg.src = ''; }
 
-  figures.forEach((fig, i) => fig.addEventListener('click', () => show(i)));
-  document.getElementById('lb-close').addEventListener('click', close);
+  document.getElementById('lb-close').addEventListener('click', closeLb);
   document.getElementById('lb-prev').addEventListener('click', e => { e.stopPropagation(); show(current - 1); });
   document.getElementById('lb-next').addEventListener('click', e => { e.stopPropagation(); show(current + 1); });
-  lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target === lbImg) close(); });
+  lightbox.addEventListener('click', e => { if (e.target === lightbox || e.target === lbImg) closeLb(); });
   document.addEventListener('keydown', e => {
     if (!lightbox.classList.contains('open')) return;
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape') closeLb();
     if (e.key === 'ArrowLeft') show(current - 1);
     if (e.key === 'ArrowRight') show(current + 1);
   });
+
+  window.addEventListener('hashchange', route);
+  route();
 </script>
 
 </body>
